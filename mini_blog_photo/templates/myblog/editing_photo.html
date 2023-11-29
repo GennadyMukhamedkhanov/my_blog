@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Редактировать фото</title>
+</head>
+<body>
+    <div>
+        <form action="{% url 'editing_photo' photo.id %}" method="post">
+            {% csrf_token %}
+            <img src="{{photo.img.url}}" alt="" width="500px">
+            <button type="submit">Удалить фото</button>
+        </form>
+    </div>
+    <div>
+        <h2>Название фото: </h2><tt>{{photo.title}}</tt><br>
+        <h2>Описание фото: </h2><tt>{{photo.description}}</tt>
+
+        <form action="{% url 'editing_description' photo.id %}">
+            <h2>Редактировать название и описание</h2>
+            <input type="text" name="title" title="Название фото" placeholder="Новое название фото" ><br><br>
+            <textarea name="description"  title="Описание фото" placeholder="Новое описание фото"></textarea>
+            <button type="submit">Изменить</button>
+        </form>
+    </div>
+
+    <div>
+        <h2>Ваши комментарии:</h2>
+        {% for comment in comments %}
+        {{comment.text}}||| <a href="{% url 'del_comment' comment.id photo.id%}">Удалить</a>||| <a href="{% url 'editing_comment' comment.id photo.id %}">Изменить комментарий</a><br>
+        {% endfor %}
+    </div>
+
+
+</body>
+</html>

@@ -1,0 +1,68 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Просмотр</title>
+</head>
+<body>
+<h3>{{ data.title }}</h3><br>
+
+<div>
+    {% if user.is_authenticated %}
+        {{ like }}
+        <a href="{% url 'like' data.id %}">
+            {% if my_like == 0 %}
+            <img src="{% static 'image/free-icon-like-4765684.png' %}" style="width:25px;height:25px">
+            {% else %}
+            <img src="{% static 'image/free-icon-like-1067346.png' %}" style="width:25px;height:25px">
+            {% endif %}
+        </a>
+        {{ dislike }}
+        <a href="{% url 'dislike' data.id %}">
+            {% if my_dislike == 0 %}
+            <img src="{% static 'image/free-icon-dislike-8214349.png' %}" style="width:25px;height:25px">
+            {% else %}
+            <img src="{% static 'image/free-icon-dislike-5853541.png' %}" style="width:25px;height:25px">
+            {% endif %}
+        </a>
+        {% endif%}
+    <br>
+</div>
+
+<img src="{{data.img.url}}" alt="ТУТ ФОТО" style="width:100px;height:70pppx"> <br>
+{{data.author.username}}<br>
+{{data.create_at}}<br>
+{{data.description}}<br>
+
+{% if  user.is_authenticated %}
+<div class="form-comment">
+    <h3>Оставить комментарий</h3>
+    <div>
+        <form action="{% url 'post' data.id %}" method="post">
+            {% csrf_token %}
+            <label>Ваш комментарий</label>
+            <textarea name="text"></textarea><br>
+            <button type="submit">Отправить комментарий</button>
+        </form>
+    </div>
+</div>
+{% endif %}
+<h1>Комментарии к фото</h1>
+
+<div>
+    <div>
+        <select name="" id="" size="{{comments.count}}">
+            {% for comment in comments %}
+            <option><b>{{comment.user}} {{comment.create_at}}</b></option>
+            <option><i>{{comment.text}}</i></option>
+            <option><i>---------------------------------</i></option>
+            <br>
+            {%endfor%}
+        </select>
+    </div>
+</div>
+
+
+</body>
+</html>
