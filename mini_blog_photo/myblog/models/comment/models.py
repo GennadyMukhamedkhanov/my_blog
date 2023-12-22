@@ -7,7 +7,6 @@ class Comment(models.Model):
     photo = models.ForeignKey(to='Photo', on_delete=models.CASCADE, related_name='comments', verbose_name='Фото')
     user = models.ForeignKey(to='User', verbose_name='Имя автора', related_name='comments', on_delete=models.CASCADE)
 
-    # TODO related_name  в двух строках, названия должны быть разными?
 
     def __str__(self):
         return f'{self.photo}   ' \

@@ -1,19 +1,28 @@
 from django.forms import model_to_dict
 from django.shortcuts import render
-from rest_framework import generics
+from rest_framework import generics, viewsets
 from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.serializers import PhotoListSerializer, CommentListSerializer
-from myblog.models import Photo, User, Comment
+from api.serializers import PhotoListSerializer, CommentListSerializer, LikeDislikeSerialiser
+from myblog.models import Photo, User, Comment, Like
 
-
-# class PhotoListView(generics.ListAPIView):
+# Todo DefaultRouter не поонял чем он отличается от SimpleRouter
+#  Также как работает @action
+#  Переопределение метода get_queryset
+#  Переопределение routers
+# class PhotoViewSet(viewsets.ModelViewSet):
 #     queryset = Photo.objects.all()
 #     serializer_class = PhotoListSerializer
 
-class PhotoListView(APIView):
+
+# class PhotoListView(generics.ListCreateAPIView):
+#     queryset = Photo.objects.all()
+#     serializer_class = PhotoListSerializer
+
+
+class PhotoListCreateView(APIView):
     def get(self, request):
         obj_photo = Photo.objects.all()
         obj_sr = PhotoListSerializer(obj_photo, many=True).data
@@ -22,15 +31,30 @@ class PhotoListView(APIView):
     def post(self, request):
         serializer = PhotoListSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        post_new = Photo.objects.create(
-            title=request.data['title'],
-            description=request.data['description'],
-            author_id=request.data['author_id'],
-            img=request.data['img']
+        serializer.save()
+        return Response(serializer.data)
 
-        )
-        obj_ser = PhotoListSerializer(post_new).data
-        return Response(obj_ser)
+
+class PhotoPutDelete(APIView):
+    def put(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', None)
+        try:
+            instance = Photo.objects.get(pk=pk)
+        except:
+            return Response({'error': f'Объект c id:{pk} не определен '})
+
+        serializer = PhotoListSerializer(data=request.data, instance=instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        try:
+            Photo.objects.get(pk=pk).delete()
+        except:
+            return Response({'error': f'Объект с id {pk} не существует'})
+        return Response({'STATUS': 'Объект удален'})
 
 
 class CommentListCreateView(APIView):
@@ -42,13 +66,65 @@ class CommentListCreateView(APIView):
     def post(self, request):
         serializer = CommentListSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        comment_new = Comment.objects.create(
-            text=request.data['text'],
-            photo_id=request.data['photo_id'],
-            user_id=request.data['user_id']
+        serializer.save()
 
-        )
-        obj_ser = CommentListSerializer(comment_new).data
-        return Response(obj_ser)
+        return Response(serializer.data)
 
-# at 4 14min
+
+class CommentPutDelete(APIView):
+    def put(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', None)
+        try:
+            instance = Comment.objects.get(pk=pk)
+        except:
+            return Response({'error': f'Объект с id {pk} не существует'})
+
+        serializer = CommentListSerializer(data=request.data, instance=instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', None)
+
+        try:
+            instance = Comment.objects.get(pk=pk)
+            instance.delete()
+        except:
+            return Response({'error': 'Объект не определен'})
+
+        return Response({f'comments c pk {pk}': 'удален'})
+
+
+class LikeDislikeCreate(APIView):
+    def get(self, request):
+        list_obj_like = Like.objects.all()
+        list_ser = LikeDislikeSerialiser(list_obj_like, many=True).data
+        return Response(list_ser)
+
+    def post(self, request):
+        serializer = LikeDislikeSerialiser(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+
+class LikeDislikePutDelete(APIView):
+    def put(self, request, *args, **kwargs):
+        pk = kwargs.get('pk', None)
+        try:
+            instance = Like.objects.get(pk=pk)
+        except:
+            return Response({'error': f'Объект с id {pk} не существует'})
+        serializer = LikeDislikeSerialiser(data=request.data, instance=instance)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request, *args, **kwargs):
+        pk = kwargs.get('pk')
+        try:
+            Like.objects.get(pk=pk).delete()
+        except:
+            return Response({'error': f'Объект с id {pk} не существует'})
+        return Response({'STATUS': 'Объект удален'})
