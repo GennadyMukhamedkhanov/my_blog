@@ -28,7 +28,9 @@
     <div>
         {% for photo in photo_data %}
             <h3>{{photo.title}}</h3>
-            <a href="{% url 'post' photo.id%}"><img src="{{photo.img.url}}" alt="ТУТ ФОТО" style="width:100px"></a> <br>
+            {% if photo.img%}
+                <a href="{% url 'post' photo.id%}"><img src="{{photo.img.url}}" alt="ТУТ ФОТО" style="width:100px"></a> <br>
+            {% endif %}
             {{photo.author.username}}<br>
             {{photo.create_at}}<br>
         {% endfor %}

@@ -5,21 +5,10 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from api.serializers import PhotoListSerializer, CommentListSerializer, LikeDislikeSerialiser
+from api.serializers import PhotoListSerializer, CommentListSerializer, LikeDislikeSerialiser, PersonalAccountSerializer
 from myblog.models import Photo, User, Comment, Like
 
-# Todo DefaultRouter не поонял чем он отличается от SimpleRouter
-#  Также как работает @action
-#  Переопределение метода get_queryset
-#  Переопределение routers
-# class PhotoViewSet(viewsets.ModelViewSet):
-#     queryset = Photo.objects.all()
-#     serializer_class = PhotoListSerializer
 
-
-# class PhotoListView(generics.ListCreateAPIView):
-#     queryset = Photo.objects.all()
-#     serializer_class = PhotoListSerializer
 
 
 class PhotoListCreateView(APIView):
@@ -28,11 +17,22 @@ class PhotoListCreateView(APIView):
         obj_sr = PhotoListSerializer(obj_photo, many=True).data
         return Response(obj_sr)
 
-    def post(self, request):
-        serializer = PhotoListSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(serializer.data)
+    # def post(self, request):
+    #     serializer = PhotoListSerializer(data=request.data)
+    #     serializer.is_valid(raise_exception=True)
+    #     serializer.save()
+    #     return Response(serializer.data)
+
+class PersonalAccount(APIView):
+    def get(self, request, *args, **kwargs):
+        pk_user = kwargs.get('pk')
+        obj_user = User.objects.get(pk=pk_user)
+        obj_sr = PersonalAccountSerializer(obj_user)
+        return Response(obj_sr.data)
+
+
+
+
 
 
 class PhotoPutDelete(APIView):

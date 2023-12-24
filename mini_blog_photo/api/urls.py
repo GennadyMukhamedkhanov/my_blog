@@ -14,6 +14,8 @@ urlpatterns = [
     # path('photos/', PhotoViewSet.as_view({'get':'list', 'post':'create'})),
     #path('photos/<int:pk>/', PhotoViewSet.as_view({'put':'update', 'delete':'destroy'})),
     path('photos/', PhotoListCreateView.as_view()),
+    path('personal_account/<int:pk>/', PersonalAccount.as_view()),
+
     path('photos/<int:pk>/', PhotoPutDelete.as_view()),
 
     path('comments/', CommentListCreateView.as_view()),

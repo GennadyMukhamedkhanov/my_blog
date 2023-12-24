@@ -11,7 +11,7 @@ from rest_framework.renderers import JSONRenderer
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ('username',)
 
 
 class PhotoListSerializer(serializers.ModelSerializer):
@@ -19,30 +19,57 @@ class PhotoListSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Photo
-        fields = ('__all__')
+        fields = ('title', 'img', 'author', 'create_at')
 
-    # title = serializers.CharField(max_length=100)
-    # description = serializers.CharField()
-    # create_at = serializers.DateField(read_only=True)
-    # status = serializers.BooleanField(default=False)
-    # author_id = serializers.IntegerField()
-    # img = serializers.ImageField()
 
-    def create(self, validated_data):
-        return Photo.objects.create(
-            **validated_data
+# Todo -----------------------------------------------------
 
+class PhotoImgSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ('img',)
+
+
+class PersonalAccountSerializer(serializers.ModelSerializer):
+    likes_count = serializers.SerializerMethodField()
+    dislikes_count = serializers.SerializerMethodField()
+    comments_my_count = serializers.SerializerMethodField()
+    photo_my = serializers.SerializerMethodField()
+    sum_like_dislike = serializers.SerializerMethodField()
+
+    def get_sum_like_dislike(self, obj):
+        return obj.likes.all().count()
+    def get_likes_count(self, obj):
+        like = obj.likes.filter(is_like=True).count()
+        return like
+
+    def get_dislikes_count(self, obj):
+        dislike = obj.likes.filter(is_like=False).count()
+        return dislike
+
+    def get_comments_my_count(self, obj):
+        comments = obj.comments.all().count()
+        return comments
+
+    def get_photo_my(self, obj):
+        photos = obj.photos.all()
+        return PhotoImgSerializer(photos, many=True).data
+
+    class Meta:
+        model = User
+        fields = (
+            'username',
+            'phone',
+            'email',
+            'likes_count',
+            'dislikes_count',
+            'comments_my_count',
+            'photo_my',
+            'sum_like_dislike',
         )
 
-    def update(self, instance, validated_data):
-        instance.title = validated_data.get('title', instance.title)
-        instance.description = validated_data.get('description', instance.description)
-        instance.create_at = validated_data.get('create_at', instance.create_at)
-        instance.status = validated_data.get('status', instance.status)
-        instance.author_id = validated_data.get('author_id', instance.author_id)
-        instance.img = validated_data.get('img', instance.img)
-        instance.save()
-        return instance
+
+# Todo -----------------------------------------------------
 
 
 class CommentListSerializer(serializers.ModelSerializer):
@@ -52,6 +79,7 @@ class CommentListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Comment
         fields = ('__all__')
+
     # text = serializers.CharField(max_length=250)
     # create_at = serializers.DateField(read_only=True)
     # photo_id = serializers.IntegerField()
@@ -85,6 +113,7 @@ class LikeDislikeSerialiser(serializers.ModelSerializer):
     class Meta:
         model = Like
         fields = ('__all__')
+
     # photo_id = serializers.IntegerField()
     # user_id = serializers.IntegerField()
     # is_like = serializers.BooleanField(default=True)
