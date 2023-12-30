@@ -7,7 +7,12 @@ from myblog.models import Photo, Comment, Like, User
 from rest_framework import serializers
 from rest_framework.renderers import JSONRenderer
 
+class UserCreateTokenSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username', 'phone',)
 
+# Vasia 333
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
@@ -70,6 +75,69 @@ class PersonalAccountSerializer(serializers.ModelSerializer):
 
 
 # Todo -----------------------------------------------------
+
+class UpdatePhohoUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ('__all__')
+
+
+
+
+class CommentsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Comment
+        fields = ('text',)
+
+class CommentUserSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('username',)
+
+class ListCommentsLikePhotoSerializer(serializers.ModelSerializer):
+    author = CommentUserSerializers()
+    comments = serializers.SerializerMethodField()
+    like = serializers.SerializerMethodField()
+    dislike = serializers.SerializerMethodField()
+
+    def get_dislike(self, obj):
+        return obj.likes.filter(is_like=False).count()
+    def get_like(self, obj):
+        return obj.likes.filter(is_like=True).count()
+
+    def get_comments(self, obj):
+        all_comments = obj.comments.all()
+        return CommentsSerializer(all_comments, many=True).data
+
+
+    class Meta:
+        model = Photo
+        fields = ('title',
+                  'author',
+                  'create_at',
+                  'description',
+                  'comments',
+                  'like',
+                  'dislike')
+        #like, photo
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 class CommentListSerializer(serializers.ModelSerializer):
