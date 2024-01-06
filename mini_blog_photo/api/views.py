@@ -1,18 +1,16 @@
-from django.forms import model_to_dict
-from django.shortcuts import render
-from rest_framework import generics, viewsets
-from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, IsAdminUser, AllowAny
-from rest_framework.renderers import JSONRenderer
+
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.authtoken.models import Token
 
-from api.permissions.photo.permissions import OnlyReadOrIsAdminUser
-from api.serializers import PhotoListSerializer, CommentListSerializer, LikeDislikeSerialiser, \
-    PersonalAccountSerializer, UserCreateTokenSerializer, UpdatePhohoUserSerializer, ListCommentsLikePhotoSerializer, \
-    UserCreateSerializer, CreatePhotoSerializer, CoommentsPersonalOnPhotoAllSerializer, CoommentsSerializer, \
-    AllDataSerializer
-from myblog.models import Photo, User, Comment, Like
+from api.permissions.photo.permissions import IsAuthor, IsAuthorComment
+from api.serializers import (PhotoListSerializer, CommentListSerializer, PersonalAccountSerializer,
+                             UserCreateTokenSerializer, UpdatePhohoUserSerializer, ListCommentsLikePhotoSerializer,
+                             UserCreateSerializer, CreatePhotoSerializer, CoommentsPersonalOnPhotoAllSerializer,
+                             CoommentsSerializer, PhotoIdSerializer, CommentsIdSerializer)
+from myblog.models import Photo, User, Comment
 
 
 class UserCreateView(APIView):
@@ -45,16 +43,18 @@ class TokenGetView(APIView):
             'error': 'Data is not valid'
         }, status=400)
 
+
 class PhotoListCreateView(APIView):
     def get(self, request):
-        permission_classes = [AllowAny, ]
+        self.permission_classes = [AllowAny, ]
         self.check_permissions(request)
+        # Todo как черех сериалтзатор вернуть все объекты
         obj_photo = Photo.objects.all()
         obj_sr = PhotoListSerializer(obj_photo, many=True).data
         return Response(obj_sr)
 
     def post(self, request, **kwargs):
-        permission_classes = [IsAuthenticated, ]
+        self.permission_classes = [IsAuthenticated, ]
         self.check_permissions(request)
         serializer = CreatePhotoSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -69,19 +69,24 @@ class PhotoListCreateView(APIView):
 
 
 class PhotoShowUpdateDeleteView(APIView):
-    def put(self, request, *args, **kwargs):
-        permission_classes = [IsAuthenticated, IsAdminUser]
+    def get(self, request, **kwargs):
+        self.permission_classes = [IsAuthenticatedOrReadOnly]
+        self.check_permissions(request)
+        serializer = PhotoIdSerializer(data=kwargs)
+        serializer.is_valid(raise_exception=True)
+        obj_photo = serializer.validated_data['pk_photo']
+        obj_ser = ListCommentsLikePhotoSerializer(obj_photo).data
+        return Response(obj_ser)
 
-        id_photo = kwargs.get('pk_photo')
-        try:
-            instance = Photo.objects.get(pk=id_photo)
-        except:
-            return Response({'error': 'Фото с данны id не существует'})
-        # Todo так нужно?
-        if request.user.id != instance.author_id:
-            return Response({
-                'error': 'You can only change your photos'
-            })
+    def put(self, request, *args, **kwargs):
+        self.permission_classes = [IsAuthenticated, IsAuthor, ]
+        self.check_permissions(request)
+
+        serializer = PhotoIdSerializer(data=kwargs)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.validated_data['pk_photo']
+        self.check_object_permissions(request=request, obj=instance)
+
         serializer = UpdatePhohoUserSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.title = serializer.validated_data['title']
@@ -91,63 +96,49 @@ class PhotoShowUpdateDeleteView(APIView):
         return Response({'Изменено на': obj_ser})
 
     def delete(self, request, *args, **kwargs):
-        permission_classes = [IsAuthenticated, IsAdminUser]
-        id_photo = kwargs.get('pk_photo')
-        try:
-            obj = Photo.objects.get(pk=id_photo)
-            # Todo так нужно?
-            if request.user.id != obj.author_id:
-                return Response({
-                    'error': 'You can only delete your photos'
-                })
-            obj.delete()
-        except:
-            return Response({'error': 'Ошибка удаления фото'})
-
-        return Response({'Удаление фото': 'прошло успешно'})
+        self.permission_classes = [IsAuthenticated, IsAuthor]
+        self.check_permissions(request)
+        serializer = PhotoIdSerializer(data=kwargs)
+        serializer.is_valid(raise_exception=True)
+        # Todo   не пойму зачем здесь мы проверяем на ограничение доступа объект?
+        obj = serializer.validated_data['pk_photo']
+        self.check_object_permissions(request=request, obj=obj)
+        obj.delete()
+        return Response({}, status=status.HTTP_204_NO_CONTENT)
 
 
 class PersonalAccount(APIView):
     def get(self, request, *args, **kwargs):
-        permission_classes = [IsAuthenticated, ]
+        self.permission_classes = [IsAuthenticated, ]
+        self.check_permissions(request)
         obj_sr = PersonalAccountSerializer(request.user)
         return Response(obj_sr.data)
 
 
-class PersonalCommentsUserListUpdateDeleteOnPhoto(APIView):
+class PhotoShowPersonalAccount(APIView):
     def get(self, request, **kwargs):
-        # Todo не пойму как данныу о фото передать
-        permission_classes = [IsAuthenticatedOrReadOnly]
-        id_photo = kwargs.get('pk_photo')
-        try:
-            photo = Photo.objects.get(id=id_photo)
-        except:
-            return Response({
-                'error':'No photo found'
-            })
-        if request.user.id != photo.author_id:
-            return Response({
-                'error': 'You can only delete your photos'
-            })
-
-        serializer = CoommentsSerializer(photo).data
+        self.permission_classes = [IsAuthenticatedOrReadOnly, IsAuthor]
+        self.check_permissions(request)
+        serislizer = PhotoIdSerializer(data=kwargs)
+        serislizer.is_valid(raise_exception=True)
+        obj_photo = serislizer.validated_data['pk_photo']
+        self.check_object_permissions(request=request, obj=obj_photo)
+        serializer = CoommentsSerializer(obj_photo).data
         return Response({
             'data_on_photo': serializer,
 
         })
 
+
+class CommentsUpdateDeleteView(APIView):
     def put(self, request, **kwargs):
-        permission_classes = [IsAuthenticated, ]
-        id_comments = kwargs.get('pk_comments')
-        try:
-            instance = Comment.objects.get(pk=id_comments)
-        except:
-            return Response({'error': 'Комментарий с данны id не существует'})
-        # Todo так нужно?
-        if request.user.id != instance.user_id:
-            return Response({
-                'error': 'You can only change comments your photos'
-            })
+        self.permission_classes = [IsAuthenticated, IsAuthor]
+        self.check_permissions(request)
+        serializer = CommentsIdSerializer(data=kwargs)
+        serializer.is_valid(raise_exception=True)
+        instance = serializer.validated_data['pk_comments']
+        self.check_object_permissions(request=request, obj=instance)
+
         serializer = CoommentsPersonalOnPhotoAllSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         instance.text = serializer.validated_data['text']
@@ -156,63 +147,45 @@ class PersonalCommentsUserListUpdateDeleteOnPhoto(APIView):
         return Response({'Изменено на': obj_ser})
 
     def delete(self, request, **kwargs):
-        permission_classes = [IsAuthenticated, ]
-        id_comments = kwargs.get('pk_comments')
-        try:
-            instance = Comment.objects.get(pk=id_comments)
-        except:
-            return Response({'error': 'Комментарий с данны id не существует'})
-        # Todo так нужно?
-        if request.user.id != instance.user_id:
-            return Response({
-                'error': 'You can only delete your comments'
-            })
-
+        self.permission_classes = [IsAuthenticated, IsAuthorComment]
+        self.check_permissions(request)
+        serializers = CommentsIdSerializer(data=kwargs)
+        serializers.is_valid(raise_exception=True)
+        instance = serializers.validated_data['pk_comments']
+        self.check_object_permissions(request=request, obj=instance)
         instance.delete()
 
         return Response({'Удаление комментария': 'прошло успешно'})
 
 
-class CommentsListCreateUpdateDeleteView(APIView):
-    def get(self, request, **kwargs):
-        permission_classes = [IsAuthenticatedOrReadOnly]
-        id_photo = kwargs['photo_pk']
-        try:
-            obj_photo = Photo.objects.get(pk=id_photo)
-        except:
-            return Response({
-                'error':'No photo found'
-            })
-        obj_ser = ListCommentsLikePhotoSerializer(obj_photo).data
-        return Response(obj_ser)
+class CommentCreateView(APIView):
 
     def post(self, request, **kwargs):
-        id_photo = kwargs['photo_pk']
+        self.permission_classes = (IsAuthenticated,)
+        self.check_permissions(request)
+        photo_serializer = PhotoIdSerializer(data=kwargs)
+        photo_serializer.is_valid(raise_exception=True)
+
         serializer = CoommentsPersonalOnPhotoAllSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        try:
-            obj_photo = Comment.objects.create(
+
+        obj_photo = Comment.objects.create(
             text=serializer.validated_data['text'],
-            photo_id=id_photo,
+            photo=photo_serializer.validated_data['pk_photo'],
             user=request.user,
         )
-        except:
-            return Response({
-                'error': 'No photo found'
-            })
+
         obj_ser = CommentListSerializer(obj_photo).data
         return Response({'New comments': obj_ser})
 
 # Todo------------------------------------------------------------------
-class AllData(APIView):
-    def get(self, request):
-        photos = Photo.objects.all()
-        serializer = AllDataSerializer(photos, many=True)
-        return Response({
-            'data':serializer.data
-        })
-
-
+# class AllData(APIView):
+#     def get(self, request):
+#         photos = Photo.objects.all()
+#         serializer = AllDataSerializer(photos, many=True)
+#         return Response({
+#             'data': serializer.data
+#         })
 
 # class PhotoPutDelete(APIView):
 #     def put(self, request, *args, **kwargs):

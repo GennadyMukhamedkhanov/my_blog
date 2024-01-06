@@ -3,24 +3,23 @@
 from django.urls import path, include
 
 from api.views import UserCreateView, TokenGetView, PhotoListCreateView, PhotoShowUpdateDeleteView, PersonalAccount,\
-    CommentsListCreateUpdateDeleteView, PersonalCommentsUserListUpdateDeleteOnPhoto, AllData
+    PhotoShowPersonalAccount,  CommentsUpdateDeleteView, CommentCreateView
 
 
 urlpatterns = [
+    # Users
     path('users/', UserCreateView.as_view()),
     path('token/', TokenGetView.as_view()),
-
+    path('personal_account/', PersonalAccount.as_view()),
+    # Photos
     path('photos/', PhotoListCreateView.as_view()),
     path('photos/<int:pk_photo>/', PhotoShowUpdateDeleteView.as_view()),
+    path('photos/<int:pk_photo>/personal_account/', PhotoShowPersonalAccount.as_view()),
+    # Comments
+    path('photos/<int:pk_photo>/comments/', CommentCreateView.as_view()),
+    path('comments/<int:pk_comments>/', CommentsUpdateDeleteView.as_view()),
 
-    path('data_photo/<int:photo_pk>/', CommentsListCreateUpdateDeleteView.as_view()),
-
-    path('personal_account/', PersonalAccount.as_view()),
-    path('personal_account_comments/<int:pk_photo>/', PersonalCommentsUserListUpdateDeleteOnPhoto.as_view()),
-    path('personal_comments/<int:pk_comments>/', PersonalCommentsUserListUpdateDeleteOnPhoto.as_view()),
-    path('personal_account/<int:pk_comments>/', PersonalCommentsUserListUpdateDeleteOnPhoto.as_view()),
-
-    path('all_data/', AllData.as_view())
+    #path('all_data/', AllData.as_view())
 
 
 

@@ -213,22 +213,6 @@ class LikeDislikeSerialiser(serializers.ModelSerializer):
         model = Like
         fields = ('__all__')
 
-    # photo_id = serializers.IntegerField()
-    # user_id = serializers.IntegerField()
-    # is_like = serializers.BooleanField(default=True)
-
-    def create(self, validated_data):
-        return Like.objects.create(
-            **validated_data
-        )
-
-    def update(self, instance, validated_data):
-        instance.photo_id = validated_data.get('photo_id', instance.photo_id)
-        instance.user_id = validated_data.get('user_id', instance.user_id)
-        instance.is_like = validated_data.get('is_like', instance.is_like)
-        instance.save()
-        return instance
-
 
 class ListSerializer(serializers.ModelSerializer):
     pass
@@ -251,6 +235,10 @@ class CommentAll(serializers.ModelSerializer):
         fields = (
             'text',
         )
+
+
+
+
 class AllDataSerializer(serializers.ModelSerializer):
     #author = AllUserSerializer()
     author = serializers.CharField(source='author.username')
@@ -280,3 +268,12 @@ class AllDataSerializer(serializers.ModelSerializer):
             'comments',
             'like',
         )
+
+
+class PhotoIdSerializer(serializers.Serializer):
+    pk_photo = serializers.PrimaryKeyRelatedField(queryset=Photo.objects.all())
+
+
+class CommentsIdSerializer(serializers.Serializer):
+    pk_comments = serializers.PrimaryKeyRelatedField(queryset=Comment.objects.all())
+
